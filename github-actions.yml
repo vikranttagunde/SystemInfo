@@ -1,0 +1,43 @@
+name: System Information Gathering
+
+on:
+  workflow_dispatch:
+
+jobs:
+  gather-system-info:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+  
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install boto3
+
+    - name: Read IP addresses from input.txt
+      id: read_ips
+      run: |
+        ips=$(cat input.txt)
+        echo "IP_ADDRESSES=$ips" >> $GITHUB_ENV
+
+    - name: Gather and upload system information
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        BUCKET_NAME: your-bucket-name
+        IP_ADDRESSES: ${{ env.IP_ADDRESSES }}
+      run: |
+        # Path to the scripts folder (assuming the Python script is in a folder called 'scripts')
+        script_path=scripts/gather_system_info.py
+
+        # Loop through each IP address and execute the script
+        for ip in $IP_ADDRESSES; do
+          python $script_path --ip $ip --bucket $BUCKET_NAME
+        done
