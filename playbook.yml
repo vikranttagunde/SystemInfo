@@ -1,7 +1,7 @@
 ---
 - name: Gather system information
-  hosts: test_servers
-  become: yes
+  hosts: all
+  become: true
   vars:
     dest_file: /tmp/system_info.txt
     local_output_dir: ./system_info_outputs
@@ -35,7 +35,9 @@
         dest: "{{ local_file_path }}"
         flat: yes
 
-    - name: Run Python script to convert text files to JSON
+    - name: Convert TXT to JSON
       delegate_to: localhost
       shell: |
-        python3 process_system_info.py "{{ local_file_path }}"
+        for file in {{ playbook_dir }}/{{ local_output_dir }}/*.txt; do
+          python3 process_system_info.py "$file"
+        done
