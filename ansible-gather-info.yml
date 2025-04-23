@@ -1,0 +1,41 @@
+---
+- name: Gather system information
+  hosts: test_servers
+  become: yes
+  vars:
+    dest_file: /tmp/system_info.txt
+    local_output_dir: ./system_info_outputs
+    local_file_path: "{{ local_output_dir }}/system_info_{{ inventory_hostname }}.txt"
+
+  tasks:
+    - name: Ensure local output directory exists
+      delegate_to: localhost
+      file:
+        path: "{{ playbook_dir }}/{{ local_output_dir }}"
+        state: directory
+
+    - name: Copy command.sh to /tmp/ on remote machine
+      copy:
+        src: ./command.sh
+        dest: /tmp/command.sh
+        mode: '0755'
+
+    - name: Execute command.sh
+      shell: /tmp/command.sh
+      register: result
+
+    - name: Save the system information to a file
+      copy:
+        content: "{{ result.stdout }}"
+        dest: "{{ dest_file }}"
+
+    - name: Fetch system_info.txt to local machine
+      fetch:
+        src: "{{ dest_file }}"
+        dest: "{{ local_file_path }}"
+        flat: yes
+
+    - name: Run Python script to convert text files to JSON
+      delegate_to: localhost
+      shell: |
+        python3 process_system_info.py "{{ local_file_path }}"
